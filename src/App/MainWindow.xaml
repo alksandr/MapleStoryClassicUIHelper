@@ -1,0 +1,50 @@
+<Window x:Class="MapleHelper.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Maple Field Guide" Width="900" Height="640" MinWidth="700" MinHeight="450" WindowStyle="None" ResizeMode="CanResize" Background="#FFF8E5" FontFamily="Tahoma" FontSize="13" PreviewKeyDown="OnKeyDown">
+  <shell:WindowChrome.WindowChrome><shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6" CornerRadius="5" GlassFrameThickness="0" UseAeroCaptionButtons="False"/></shell:WindowChrome.WindowChrome>
+  <Border BorderBrush="#2B64A0" BorderThickness="3" CornerRadius="4">
+    <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="39"/><RowDefinition Height="62"/><RowDefinition Height="38"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <Border Grid.Row="0" Background="#2B64A0" MouseLeftButtonDown="DragTitle">
+        <Grid Margin="9,0,5,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="◆" Foreground="#FFD46A" FontSize="22" Margin="0,0,9,0"/><TextBlock Text="Maple Field Guide" FontWeight="Bold" FontSize="16" Foreground="White"/><TextBlock Text="Classic World" Foreground="#D0E8FF" Margin="14,4,0,0" FontSize="11"/></StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><Button Content="Settings" Click="OpenSettings" AutomationProperties.Name="Settings"/><Button Content="Hide" Click="HideClick" AutomationProperties.Name="Hide helper"/></StackPanel>
+        </Grid>
+      </Border>
+      <Grid Grid.Row="1" Margin="14,11"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <Grid>
+          <TextBox x:Name="SearchBox" FontSize="16" Padding="0,0,36,0" TextChanged="SearchChanged" AutomationProperties.Name="Search by name or ID" ToolTip="Search by name or numeric ID. Arrow keys choose a result; Enter opens it."/>
+          <Button x:Name="ClearSearchButton" Content="×" HorizontalAlignment="Right" Width="30" Margin="3" Padding="0" FontSize="18" ToolTip="Clear search" AutomationProperties.Name="Clear search" Click="ClearSearchClick"/>
+        </Grid>
+        <Button Grid.Column="1" Content="Search" Margin="8,0,0,0" Background="#FFE0A3" BorderBrush="#D79236" Click="SearchClick"/>
+      </Grid>
+      <StackPanel x:Name="Categories" Grid.Row="2" Orientation="Horizontal" Margin="11,0,11,8"/>
+      <Grid Grid.Row="3" Margin="13,0,13,0"><Grid.ColumnDefinitions><ColumnDefinition Width="250" MinWidth="185"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*" MinWidth="280"/></Grid.ColumnDefinitions>
+        <Border Background="#F5F9FD" BorderBrush="#B4C8DA" BorderThickness="1" CornerRadius="3">
+          <DockPanel><TextBlock x:Name="ResultsCount" DockPanel.Dock="Top" Margin="10" FontSize="11" Foreground="{StaticResource Muted}" Text="Loading your field guide…"/>
+            <ListBox x:Name="Results" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="ResultSelected" AutomationProperties.Name="Search results" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+              <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="Padding" Value="6,7"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="AutomationProperties.Name" Value="{Binding Name}"/></Style></ListBox.ItemContainerStyle>
+              <ListBox.ItemTemplate><DataTemplate><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="39"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Background="#E8F0F5" Width="32" Height="32" VerticalAlignment="Center" CornerRadius="3"><Grid><TextBlock Text="?" Foreground="#91A5B7" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Icon}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock><Image Source="{Binding Icon}" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/></Grid></Border>
+                <StackPanel Grid.Column="1"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" FontWeight="Bold"/><TextBlock Text="{Binding Subtitle}" Foreground="{StaticResource Muted}" FontSize="10" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/></StackPanel>
+              </Grid></DataTemplate></ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" Background="Transparent"/>
+        <Border Grid.Column="2" Background="#FFFEF8" BorderBrush="#D5CDB8" BorderThickness="1" CornerRadius="3">
+          <DockPanel><Button x:Name="BackButton" DockPanel.Dock="Top" Content="‹ Back" HorizontalAlignment="Left" Margin="12,10,0,0" Click="BackClick" IsEnabled="False"/>
+            <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16,12"><StackPanel x:Name="Details"/></ScrollViewer>
+          </DockPanel>
+        </Border>
+      </Grid>
+      <Grid Grid.Row="4" Margin="13,10,13,10"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <TextBlock x:Name="StatusText" Text="Reading installed game data…" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+          <Button x:Name="CancelButton" Grid.Column="1" Content="Cancel import" Click="CancelImport" Visibility="Collapsed"/>
+          <Button x:Name="RefreshButton" Grid.Column="2" Content="Refresh drop reports" Click="RefreshDrops" IsEnabled="False" FontSize="11"/>
+        </Grid>
+        <TextBlock x:Name="ShortcutText" Grid.Row="1" Text="Ctrl+Shift+Space opens the guide. Esc returns to MapleStory." Foreground="{StaticResource Muted}" FontSize="10" Margin="0,7,0,0"/>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

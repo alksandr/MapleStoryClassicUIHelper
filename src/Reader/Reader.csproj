@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>WzComparerR2.WzLib</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RunAnalyzers>false</RunAnalyzers>
+    <NoWarn>$(NoWarn);CA1416;SYSLIB0021;SYSLIB0045</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../.tools/WzComparerR2/WzComparerR2.WzLib/**/*.cs" Exclude="../../.tools/WzComparerR2/WzComparerR2.WzLib/obj/**;../../.tools/WzComparerR2/WzComparerR2.WzLib/bin/**;../../.tools/WzComparerR2/WzComparerR2.WzLib/Properties/AssemblyInfo.cs" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.6" />
+  </ItemGroup>
+</Project>
