@@ -5,12 +5,16 @@ using System.Windows;
 
 namespace MapleHelper;
 public partial class App : Application {
-    public static readonly string DataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MapleStoryClassicUIHelper");
+    private readonly bool hosted;
+    public App() { }
+    public App(bool hosted) { this.hosted = hosted; }
+    public static readonly string DataRoot = Environment.GetEnvironmentVariable("MAPLE_HELPER_DATA_ROOT") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MapleStoryClassicUIHelper");
     private Mutex? mutex;
     private EventWaitHandle? showEvent;
     private RegisteredWaitHandle? showWait;
     protected override void OnStartup(StartupEventArgs e) {
         base.OnStartup(e);
+        if (hosted) return;
         Directory.CreateDirectory(DataRoot);
         mutex = new Mutex(true, @"Local\MapleStoryClassicUIHelper", out var created);
         if (!created) {

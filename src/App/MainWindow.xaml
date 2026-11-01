@@ -7,10 +7,10 @@
       <Border Grid.Row="0" Background="#2B64A0" MouseLeftButtonDown="DragTitle">
         <Grid Margin="9,0,5,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="◆" Foreground="#FFD46A" FontSize="22" Margin="0,0,9,0"/><TextBlock Text="Maple Field Guide" FontWeight="Bold" FontSize="16" Foreground="White"/><TextBlock Text="Classic World" Foreground="#D0E8FF" Margin="14,4,0,0" FontSize="11"/></StackPanel>
-          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><Button Content="Settings" Click="OpenSettings" AutomationProperties.Name="Settings"/><Button Content="Hide" Click="HideClick" AutomationProperties.Name="Hide helper"/></StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><Button x:Name="TimersButton" Content="Boss timers" Click="ToggleTimersClick"/><Button Content="Settings" Click="OpenSettings" AutomationProperties.Name="Settings"/><Button Content="Hide" Click="HideClick" AutomationProperties.Name="Hide helper"/></StackPanel>
         </Grid>
       </Border>
-      <Grid Grid.Row="1" Margin="14,11"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <Grid x:Name="LookupSearch" Grid.Row="1" Margin="14,11"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <Grid>
           <TextBox x:Name="SearchBox" FontSize="16" Padding="0,0,36,0" TextChanged="SearchChanged" AutomationProperties.Name="Search by name or ID" ToolTip="Search by name or numeric ID. Arrow keys choose a result; Enter opens it."/>
           <Button x:Name="ClearSearchButton" Content="×" HorizontalAlignment="Right" Width="30" Margin="3" Padding="0" FontSize="18" ToolTip="Clear search" AutomationProperties.Name="Clear search" Click="ClearSearchClick"/>
@@ -18,7 +18,7 @@
         <Button Grid.Column="1" Content="Search" Margin="8,0,0,0" Background="#FFE0A3" BorderBrush="#D79236" Click="SearchClick"/>
       </Grid>
       <StackPanel x:Name="Categories" Grid.Row="2" Orientation="Horizontal" Margin="11,0,11,8"/>
-      <Grid Grid.Row="3" Margin="13,0,13,0"><Grid.ColumnDefinitions><ColumnDefinition Width="250" MinWidth="185"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*" MinWidth="280"/></Grid.ColumnDefinitions>
+      <Grid x:Name="LookupBody" Grid.Row="3" Margin="13,0,13,0"><Grid.ColumnDefinitions><ColumnDefinition Width="250" MinWidth="185"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*" MinWidth="280"/></Grid.ColumnDefinitions>
         <Border Background="#F5F9FD" BorderBrush="#B4C8DA" BorderThickness="1" CornerRadius="3">
           <DockPanel><TextBlock x:Name="ResultsCount" DockPanel.Dock="Top" Margin="10" FontSize="11" Foreground="{StaticResource Muted}" Text="Loading your field guide…"/>
             <ListBox x:Name="Results" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="ResultSelected" AutomationProperties.Name="Search results" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
@@ -36,6 +36,12 @@
             <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="16,12"><StackPanel x:Name="Details"/></ScrollViewer>
           </DockPanel>
         </Border>
+      </Grid>
+      <Grid x:Name="TimerView" Grid.Row="1" Grid.RowSpan="3" Margin="16,12" Visibility="Collapsed">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <TextBlock Text="Boss respawn timers" FontSize="23" FontWeight="Bold"/>
+        <TextBlock Grid.Row="1" Text="Manual estimates, not live spawn tracking. Search a boss and choose Add timer to track a map and channel." TextWrapping="Wrap" Margin="0,8,0,14"/>
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="TimerRows"/></ScrollViewer>
       </Grid>
       <Grid Grid.Row="4" Margin="13,10,13,10"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

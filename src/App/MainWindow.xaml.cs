@@ -43,7 +43,7 @@ public partial class MainWindow : Window {
     private readonly DispatcherTimer saveTimer = new() { Interval = TimeSpan.FromMilliseconds(600) };
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(30) };
     private readonly CancellationTokenSource lifetime = new();
-    private readonly Forms.NotifyIcon tray;
+    private readonly TrayIcon tray;
     private IntPtr handle, game;
     private Native.Rect lastBounds;
     private DateTime nextDiscovery;
@@ -57,7 +57,7 @@ public partial class MainWindow : Window {
         InitializeComponent();
         var focusSearch = new RoutedCommand();
         InputBindings.Add(new KeyBinding(focusSearch, Key.L, ModifierKeys.Control));
-        CommandBindings.Add(new CommandBinding(focusSearch, (_, e) => { SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; }));
+        CommandBindings.Add(new CommandBinding(focusSearch, (_, e) => { SetTimerView(false); SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; }));
         Topmost = followGame;
         Width = double.IsFinite(settings.Width) ? Math.Clamp(settings.Width, 700, Math.Max(700, SystemParameters.WorkArea.Width)) : 900;
         Height = double.IsFinite(settings.Height) ? Math.Clamp(settings.Height, 450, Math.Max(450, SystemParameters.WorkArea.Height)) : 640;
@@ -75,13 +75,15 @@ public partial class MainWindow : Window {
         SourceInitialized += (_, _) => { handle = new WindowInteropHelper(this).Handle; HwndSource.FromHwnd(handle)?.AddHook(WindowMessage); if (followGame) PositionOverGame(); windowTimer.Start(); };
         Closing += OnClosing;
         http.DefaultRequestHeaders.UserAgent.ParseAdd("MapleStoryClassicUIHelper/1.0");
-        tray = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Information, Text = "Maple Field Guide", Visible = true };
+        tray = new TrayIcon { Icon = System.Drawing.SystemIcons.Information, Text = "Maple Field Guide", Visible = true };
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("Open field guide", null, (_, _) => Dispatcher.Invoke(OpenFromTray));
+        menu.Items.Add("Open field guide", null, (_, _) => Dispatcher.Invoke(() => { OpenFromTray(); SetTimerView(false); }));
+        menu.Items.Add("Boss timers", null, (_, _) => Dispatcher.Invoke(() => { OpenFromTray(); SetTimerView(true); }));
         menu.Items.Add("Settings", null, (_, _) => Dispatcher.Invoke(() => { OpenFromTray(); OpenSettings(this, new RoutedEventArgs()); }));
         menu.Items.Add("Quit", null, (_, _) => Dispatcher.Invoke(Quit));
         tray.ContextMenuStrip = menu;
         tray.DoubleClick += (_, _) => Dispatcher.Invoke(OpenFromTray);
+        InitializeBossTimers();
         Loaded += (_, _) => { loading = LoadLibrary(false); SearchBox.Focus(); };
     }
     private async Task LoadLibrary(bool force) {
@@ -162,6 +164,7 @@ public partial class MainWindow : Window {
         }
         else Text("Artwork unavailable", 11);
         if (entity.Description.Length > 0) Text(entity.Description, 13);
+        if (entity.Kind == EntityKind.Monster && entity.Facts.Any(f => f.Label == "Boss" && int.TryParse(f.Value, out var bossFlag) && bossFlag > 0)) DrawAddTimer(entity);
         var stats = entity.Facts.Where(f => !f.Label.StartsWith("Level ")).ToList();
         if (stats.Count > 0) {
             var grid = new WrapPanel { Margin = new Thickness(0, 6, 0, 10) };
@@ -253,14 +256,14 @@ public partial class MainWindow : Window {
         else if (e.Key == Key.Enter && (SearchBox.IsKeyboardFocusWithin || Results.IsKeyboardFocusWithin)) { if (Results.SelectedIndex < 0 && Results.Items.Count > 0) Results.SelectedIndex = 0; if (Results.SelectedItem is ResultRow row) { ShowEntity(row.Entity); DetailScroll.Focus(); } e.Handled = true; }
     }
     private void DragTitle(object sender, MouseButtonEventArgs e) { if (e.OriginalSource is System.Windows.Controls.Primitives.ButtonBase || e.OriginalSource is TextBlock { Parent: Button }) return; if (e.LeftButton == MouseButtonState.Pressed) DragMove(); }
-    public void OpenFromTray() { if (!Native.IsWindow(game)) game = Native.FindGameWindow(); followGame = game != IntPtr.Zero && Native.GetForegroundWindow() == game; wanted = true; Topmost = followGame; if (followGame) PositionOverGame(); Show(); Activate(); SearchBox.Focus(); }
+    public void OpenFromTray() { if (!Native.IsWindow(game)) game = Native.FindGameWindow(); followGame = game != IntPtr.Zero && Native.GetForegroundWindow() == game; wanted = true; Topmost = followGame; if (followGame) PositionOverGame(); Show(); Activate(); if (showingTimers) TimersButton.Focus(); else SearchBox.Focus(); }
     private void ToggleOverlay() {
         if (!IsEnabled) return;
         if (IsVisible) { Dismiss(); return; }
         followGame = game != IntPtr.Zero && Native.GetForegroundWindow() == game;
         wanted = true; Topmost = followGame;
         if (followGame) PositionOverGame();
-        Show(); Activate(); SearchBox.Focus(); SearchBox.SelectAll();
+        Show(); Activate(); if (showingTimers) TimersButton.Focus(); else { SearchBox.Focus(); SearchBox.SelectAll(); }
     }
     public void Dismiss() { wanted = false; var restore = Native.IsOurWindow(Native.GetForegroundWindow()); Hide(); if (restore && game != IntPtr.Zero && Native.IsWindow(game) && !Native.IsIconic(game)) Native.SetForegroundWindow(game); }
     private void HideClick(object sender, RoutedEventArgs e) => Dismiss();
@@ -304,7 +307,7 @@ public partial class MainWindow : Window {
         if (dialog.ShowDialog() != true) return;
         if (registered) { Native.UnregisterHotKey(handle, 17); registered = false; }
         if (!Hotkey.TryParse(dialog.Shortcut, out var hotkey) || !Native.RegisterHotKey(handle, 17, hotkey.Modifiers | 0x4000, hotkey.Key)) { MessageBox.Show(this, "That shortcut is already in use. Your previous shortcut is unchanged.", "Choose another shortcut"); TrackGame(); return; }
-        registered = true; settings.Shortcut = dialog.Shortcut; settings.GameRoot = dialog.GameRoot;
+        registered = true; settings.Shortcut = dialog.Shortcut; settings.GameRoot = dialog.GameRoot; settings.BossTimerSound = dialog.BossTimerSound;
         ShortcutText.Text = $"{settings.Shortcut} opens the guide. Esc returns to MapleStory.";
         SaveSettings(); loading = LoadLibrary(dialog.Rebuild);
     }
@@ -313,6 +316,7 @@ public partial class MainWindow : Window {
         if (exiting) return;
         exiting = true; importCancellation?.Cancel(); lifetime.Cancel();
         if (loading != null) await loading;
+        bossTimerTick.Stop();
         SaveSettings(); windowTimer.Stop(); searchTimer.Stop(); saveTimer.Stop();
         if (registered) Native.UnregisterHotKey(handle, 17);
         tray.Visible = false; tray.Dispose(); http.Dispose(); lifetime.Dispose(); Close(); Application.Current.Shutdown();

@@ -13,6 +13,7 @@ using MapleHelper.Core;
 
 internal static class UiVerify {
     [STAThread] public static int Main(string[] args) {
+        if (args.Contains("--boss-timers")) return BossTimerUi.Run();
         var missingGame = args.Contains("--missing-game");
         var placement = args.Contains("--placement");
         var settingsPath = Path.Combine(App.DataRoot, "settings.json");

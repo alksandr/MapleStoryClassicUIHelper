@@ -30,6 +30,8 @@ try {
     & $taskDotnet build src/App/MapleHelper.csproj -c Release
     if ($LASTEXITCODE -ne 0) { throw 'Application build failed.' }
     if ($VerifyUi) {
+        & $taskDotnet run --project tests/Ui/Ui.csproj -c Release -- --boss-timers
+        if ($LASTEXITCODE -ne 0) { throw 'Boss timer UI verification failed.' }
         & $taskDotnet run --project tests/Ui/Ui.csproj -c Release
         if ($LASTEXITCODE -ne 0) { throw 'UI verification failed. Quit any already running helper and retry.' }
     }
