@@ -22,6 +22,16 @@ Use **Settings** to change the shortcut or rebuild the cache. If a shortcut is a
 
 The guide follows the game while opened with its shortcut. It hides when the game minimizes or you switch applications, and returns when you return to MapleStory. Opening from the tray also allows standalone lookup. Exclusive fullscreen is not supported.
 
+## Boss respawn timers
+
+Search a monster marked as a boss and choose **Add timer**. Select a linked map, enter a positive channel number and a respawn duration in hours/minutes/seconds, then start the timer. New durations are blank; the guide remembers your last duration for each boss/map. Starting the same boss/map/channel again restarts its existing countdown.
+
+Open **Boss timers** from the title bar or tray menu. Each timer shows its channel, map, countdown and local due time. **Killed now** restarts it; **Edit** changes its channel/duration and restarts it; **Remove** deletes it. Editing into an existing channel merges the timers. Switching back to **Field guide** preserves your lookup; **Ctrl+L** also returns to search.
+
+Timers are manual estimates, not live spawn detection or confirmed server respawn times. Expired timers stay marked **Respawn due · estimated** until restarted or removed. Deadlines survive hiding, sleep and app restarts; no alerts can run while the helper is closed. On reopening, overdue timers generate one combined catch-up alert. Alerts do not open the guide or take focus. **Settings → Play a sound when a boss timer is due** controls sound. Windows notification settings may suppress tray alerts.
+
+Timers and remembered durations live in `%LOCALAPPDATA%\MapleStoryClassicUIHelper\boss-timers.json`, independently of the game-data cache. Timers exclude world; use them within your current world.
+
 ## Data
 
 - Items, equipment, monsters, maps, NPCs, quests, skills, stats, icons, and minimaps come from your local client, including its `.wz` archives and newer `.ms` packs.
@@ -53,6 +63,8 @@ Additional checks against your real installation and the live wiki:
 ```
 
 UI verification saves `artifacts/helper-preview.png`. The session log is `%LOCALAPPDATA%\MapleStoryClassicUIHelper\session.log`.
+
+Run timer UI checks alone with `.\.tools\dotnet\dotnet.exe run --project tests/Ui/Ui.csproj -c Release -- --boss-timers`; they use temporary data and do not change your saved timers. `--timer-benchmark` on `tests/Verify.csproj` measures sparse checks and dense expiry at 1,000 and 10,000 timers. For isolated verification, `MAPLE_HELPER_DATA_ROOT` overrides the application-data folder.
 
 Source layout: `src/Core` contains import/search/cache/wiki behavior; `src/App` contains the WPF panel and Win32 window metadata/hotkey integration; `src/Reader` compiles the pinned upstream reader. Tests use small synthetic records and temporary damaged archives; the optional import check uses your own game assets.
 
