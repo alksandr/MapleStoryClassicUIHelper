@@ -53,6 +53,7 @@ if (args.Length > 0 && args[0] == "--import") {
 }
 
 BossTimerTests.Run();
+BossTimerBatchTests.Run();
 BossTimerSuggestionTests.Run();
 var tests = new (string Name, Action Run)[] {
     ("Map ranking favors plentiful dense compact spawns and preserves unknown geometry", () => {

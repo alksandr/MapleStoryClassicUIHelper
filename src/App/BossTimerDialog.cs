@@ -15,6 +15,7 @@ public sealed class BossTimerDialog : Window {
     private readonly TextBox channel, hours, minutes, seconds;
     public Entity Map => (Entity)((ComboBoxItem)maps.SelectedItem).Tag;
     public int Channel { get; private set; }
+    public IReadOnlyList<int> Channels { get; private set; } = Array.Empty<int>();
     public int DurationSeconds { get; private set; }
     public BossTimerDialog(string bossName, List<Entity> locations, BossTimers store, int bossId, BossTimer? editing = null, int? initialChannel = null) {
         NameScope.SetNameScope(this, new NameScope());
@@ -27,7 +28,9 @@ public sealed class BossTimerDialog : Window {
         maps = new ComboBox { ItemsSource = locations.Select(m => new ComboBoxItem { Content = $"{m.Name} · #{m.Id}", Tag = m }).ToList(), SelectedIndex = 0, IsEnabled = editing == null };
         RegisterName("MapChoice", maps);
         panel.Children.Add(new Label { Content = "Map", Target = maps }); panel.Children.Add(maps);
-        channel = Input(panel, "Channel", "ChannelBox", (editing?.Channel ?? initialChannel ?? 1).ToString(CultureInfo.InvariantCulture));
+        channel = Input(panel, editing == null ? "Channels" : "Channel", "ChannelBox", (editing?.Channel ?? initialChannel ?? 1).ToString(CultureInfo.InvariantCulture));
+        panel.Children.Add(new TextBlock { Text = editing == null ? "Enter a range or list: 1–10 or 1, 3, 5–8. All selected timers start now." : "Enter one positive channel for this timer.", FontSize = 11, TextWrapping = TextWrapping.Wrap });
+        var channelSummary = new TextBlock { Margin = new Thickness(0, 5, 0, 8), TextWrapping = TextWrapping.Wrap }; RegisterName("ChannelSummary", channelSummary); panel.Children.Add(channelSummary);
         var durationRow = new StackPanel { Orientation = Orientation.Horizontal }; panel.Children.Add(durationRow);
         TextBox Duration(string label, string name) { var column = new StackPanel { Width = 125 }; durationRow.Children.Add(column); return Input(column, label, name, ""); }
         hours = Duration("Hours", "HoursBox"); minutes = Duration("Minutes", "MinutesBox"); seconds = Duration("Seconds", "SecondsBox");
@@ -74,11 +77,25 @@ public sealed class BossTimerDialog : Window {
         save.Click += (_, _) => {
             PrefillIfEmpty(Resolve());
             bool Parse(TextBox box, out int value) => int.TryParse(string.IsNullOrWhiteSpace(box.Text) ? "0" : box.Text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out value) && value >= 0;
-            if (maps.SelectedItem == null || !Parse(channel, out var ch) || ch <= 0 || !Parse(hours, out var h) || !Parse(minutes, out var m) || m > 59 || !Parse(seconds, out var s) || s > 59 || (long)h * 3600 + m * 60 + s is <= 0 or > int.MaxValue) {
-                error.Text = "Enter a positive channel and duration. Minutes and seconds must be 0–59."; return;
+            IReadOnlyList<int> selected;
+            if (editing != null) {
+                if (!Parse(channel, out var single) || single <= 0) { error.Text = "Enter one positive channel when editing a timer."; return; }
+                selected = new[] { single };
+            } else if (!BossTimerChannels.TryParse(channel.Text, out selected, out var selectionError)) { error.Text = selectionError; return; }
+            if (maps.SelectedItem == null || !Parse(hours, out var h) || !Parse(minutes, out var m) || m > 59 || !Parse(seconds, out var s) || s > 59 || (long)h * 3600 + m * 60 + s is <= 0 or > int.MaxValue) {
+                error.Text = "Enter a positive duration. Minutes and seconds must be 0–59."; return;
             }
-            Channel = ch; DurationSeconds = (int)((long)h * 3600 + m * 60 + s); DialogResult = true;
+            Channels = selected; Channel = selected[0]; DurationSeconds = (int)((long)h * 3600 + m * 60 + s); DialogResult = true;
         };
+        void PreviewChannels() {
+            if (editing != null) return;
+            if (!BossTimerChannels.TryParse(channel.Text, out var selected, out var message)) { channelSummary.Text = message; save.Content = "Start timer"; return; }
+            var selectedSet = selected.ToHashSet();
+            var restarting = store.Timers.Count(t => t.BossId == bossId && t.MapId == Map.Id && selectedSet.Contains(t.Channel));
+            channelSummary.Text = $"{selected.Count} {(selected.Count == 1 ? "timer" : "timers")}" + (restarting > 0 ? $" · {restarting} existing will restart." : "");
+            save.Content = selected.Count == 1 ? "Start timer" : $"Start {selected.Count} timers";
+        }
+        channel.TextChanged += (_, _) => PreviewChannels(); maps.SelectionChanged += (_, _) => PreviewChannels(); PreviewChannels();
         Loaded += (_, _) => { var firstInput = initialChannel.HasValue ? channel : hours; firstInput.Focus(); firstInput.SelectAll(); };
     }
     private TextBox Input(StackPanel panel, string label, string name, string text) {
