@@ -50,6 +50,7 @@ internal static class BossTimerUi {
         window.Loaded += async (_, _) => {
             try {
                 await Task.Delay(200);
+                BossTimerSuggestionUi.Run(window, root);
                 var boss = new Entity { Kind = EntityKind.Monster, Id = 1, Name = "Test Boss", Facts = [new("Boss", "1")], Relations = [new(new(EntityKind.Map, 10), "Found in")] };
                 var map = new Entity { Kind = EntityKind.Map, Id = 10, Name = "Test Map" };
                 typeof(MainWindow).GetField("snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(window, new CacheSnapshot(new Catalog { Records = [boss, map] }, root));

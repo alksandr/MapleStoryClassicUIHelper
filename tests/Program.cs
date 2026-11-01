@@ -53,6 +53,7 @@ if (args.Length > 0 && args[0] == "--import") {
 }
 
 BossTimerTests.Run();
+BossTimerSuggestionTests.Run();
 var tests = new (string Name, Action Run)[] {
     ("Map ranking favors plentiful dense compact spawns and preserves unknown geometry", () => {
         Entity Map(int id, int count, int width, int height, int spread) => new() { Kind = EntityKind.Map, Id = id, Name = "Map " + id, MapData = new() { Width = width, Height = height, Spawns = Enumerable.Range(0, count).Select(i => new MonsterSpawn(7, i * spread, i * spread, null)).ToList() } };
