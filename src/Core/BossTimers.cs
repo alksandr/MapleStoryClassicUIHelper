@@ -28,6 +28,13 @@ public sealed class BossTimers {
         state = loaded;
     }
     public int? RememberedSeconds(int bossId, int mapId) => state.Durations.LastOrDefault(d => d.BossId == bossId && d.MapId == mapId)?.Seconds;
+    // O(N) on Add channel, including dense channel sets; never called per tick.
+    public int NextChannel(int bossId, int mapId) {
+        var used = state.Timers.Where(t => t.BossId == bossId && t.MapId == mapId).Select(t => t.Channel).ToHashSet();
+        var next = 1;
+        while (used.Contains(next)) next = checked(next + 1);
+        return next;
+    }
     public BossTimer Start(int bossId, string bossName, int mapId, string mapName, int channel, int seconds, DateTimeOffset now, Guid? editing = null) {
         if (channel <= 0) throw new ArgumentOutOfRangeException(nameof(channel));
         if (seconds <= 0) throw new ArgumentOutOfRangeException(nameof(seconds));

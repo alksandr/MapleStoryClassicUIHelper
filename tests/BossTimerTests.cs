@@ -33,8 +33,10 @@ internal static class BossTimerTests {
         try {
             var store = new BossTimers(path);
             Check(store.Timers.Count == 0 && !store.LoadFailed);
+            Check(store.NextChannel(1, 10) == 1);
             var one = store.Start(1, "Boss", 10, "Map", 1, 60, now);
             store.Start(1, "Boss", 10, "Map", 2, 60, now);
+            Check(store.NextChannel(1, 10) == 3 && store.NextChannel(2, 10) == 1 && store.NextChannel(1, 11) == 1);
             Check(store.Timers.Count == 2 && store.RememberedSeconds(1, 10) == 60);
             Check(store.TakeDue(now.AddSeconds(59)).Count == 0);
             using (var locked = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
@@ -56,7 +58,9 @@ internal static class BossTimerTests {
             // Editing into an existing channel merges the two identities.
             var edited = catchup.Start(1, "Boss", 10, "Map", 2, 30, now, restarted.Id);
             Check(catchup.Timers.Count == 1 && catchup.Timers[0].Id == edited.Id);
+            Check(catchup.NextChannel(1, 10) == 1); // Fill an unused lower channel before extending the set.
             catchup.Remove(edited.Id);
+            Check(catchup.NextChannel(1, 10) == 1);
             Check(new BossTimers(path).Timers.Count == 0);
             Check(new BossTimers(path).RememberedSeconds(1, 10) == 30);
             foreach (var invalid in new[] { 0, -1 }) {

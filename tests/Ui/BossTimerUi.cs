@@ -26,17 +26,26 @@ internal static class BossTimerUi {
         object? Invoke(string method, params object[] args) => typeof(MainWindow).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, args);
         void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         BossTimerDialog? dialog = null;
-        void FillDialog(int channel, int seconds, bool checkBlank = false) {
+        void FillDialog(int channel, int seconds, bool checkBlank = false, int? expectedChannel = null, bool cancel = false) {
             var pump = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             pump.Tick += (_, _) => {
                 dialog = window.OwnedWindows.OfType<BossTimerDialog>().FirstOrDefault();
                 if (dialog == null) return;
                 pump.Stop();
-                if (checkBlank) {
+                if (checkBlank || expectedChannel.HasValue || cancel) {
                     try {
-                        Check(((TextBox)dialog.FindName("HoursBox")).Text == "" && ((TextBox)dialog.FindName("MinutesBox")).Text == "" && ((TextBox)dialog.FindName("SecondsBox")).Text == "", "A new boss/map has blank duration fields");
-                        Click((Button)dialog.FindName("SaveTimerButton"));
-                        Check(dialog.IsVisible, "Blank duration keeps the dialog open for correction");
+                        if (expectedChannel.HasValue) {
+                            Check(((TextBox)dialog.FindName("ChannelBox")).Text == expectedChannel.Value.ToString(), "Add channel suggests the next unused channel");
+                            Check(((TextBox)dialog.FindName("ChannelBox")).IsKeyboardFocusWithin && ((TextBox)dialog.FindName("ChannelBox")).SelectedText == expectedChannel.Value.ToString(), "Add channel focuses and selects the suggested channel for quick entry");
+                            Check(((TextBox)dialog.FindName("HoursBox")).Text == "0" && ((TextBox)dialog.FindName("MinutesBox")).Text == "0" && ((TextBox)dialog.FindName("SecondsBox")).Text == "30", "Add channel reuses the saved duration");
+                            Check(dialog.Map.Id == 10, "Add channel retains the existing map");
+                        }
+                        if (cancel) { dialog.DialogResult = false; return; }
+                        if (checkBlank) {
+                            Check(((TextBox)dialog.FindName("HoursBox")).Text == "" && ((TextBox)dialog.FindName("MinutesBox")).Text == "" && ((TextBox)dialog.FindName("SecondsBox")).Text == "", "A new boss/map has blank duration fields");
+                            Click((Button)dialog.FindName("SaveTimerButton"));
+                            Check(dialog.IsVisible, "Blank duration keeps the dialog open for correction");
+                        }
                     } catch (Exception ex) { failed = true; Console.WriteLine("FAIL " + ex); dialog.Close(); return; }
                 }
                 ((TextBox)dialog.FindName("ChannelBox")).Text = channel.ToString();
@@ -78,10 +87,22 @@ internal static class BossTimerUi {
                 Check(search.IsKeyboardFocusWithin && search.SelectedText == "Test Boss", "Ctrl+L returns from timers to the retained search");
                 Click((Button)window.FindName("TimersButton"));
                 var rows = (StackPanel)window.FindName("TimerRows");
-                Button Action(string label) => rows.Children.OfType<Border>().Select(b => (StackPanel)b.Child).SelectMany(p => p.Children.OfType<StackPanel>()).SelectMany(p => p.Children.OfType<Button>()).Single(b => Equals(b.Content, label));
+                Button Action(string label, int? channel = null) => rows.Children.OfType<Border>().Select(b => (StackPanel)b.Child).Where(p => channel == null || p.Children.OfType<TextBlock>().First().Text.EndsWith($"Channel {channel}")).SelectMany(p => p.Children.OfType<StackPanel>()).SelectMany(p => p.Children.OfType<Button>()).First(b => Equals(b.Content, label));
                 var oldDue = new BossTimers(path).Timers.Single().DueAt;
                 Click(Action("Killed now"));
                 Check(new BossTimers(path).Timers.Single().DueAt >= oldDue, "Killed now restarts the countdown");
+                var original = new BossTimers(path).Timers.Single();
+                FillDialog(2, 30, expectedChannel: 2, cancel: true); Click(Action("Add channel"));
+                Check(new BossTimers(path).Timers.Single() == original, "Cancelling Add channel leaves the existing countdown unchanged");
+                FillDialog(2, 30, expectedChannel: 2); Click(Action("Add channel"));
+                var added = new BossTimers(path);
+                Check(added.Timers.Count == 2 && added.Timers.Single(t => t.Id == original.Id) == original, "Add channel creates an independent timer without resetting the original");
+                var snapshotField = typeof(MainWindow).GetField("snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                var availableSnapshot = snapshotField.GetValue(window); snapshotField.SetValue(window, null);
+                FillDialog(3, 30, expectedChannel: 3); Click(Action("Add channel"));
+                snapshotField.SetValue(window, availableSnapshot);
+                Check(new BossTimers(path).Timers.Count == 3, "More channels can be added directly from the timer list");
+                Click(Action("Remove", 3)); Click(Action("Remove", 2));
                 Directory.CreateDirectory("artifacts"); window.UpdateLayout();
                 var render = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32); render.Render(window);
                 var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(render));
