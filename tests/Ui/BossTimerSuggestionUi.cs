@@ -63,5 +63,20 @@ internal static class BossTimerSuggestionUi {
         Check(Show(fresh, d => { Clear(d); Start(d); }) == true && fresh.DurationSeconds == 3600, "Starting with all fields blank reapplies the complete suggestion");
         store.Start(700000, "Mushmom", client.Id, client.Name, fresh.Channel, fresh.DurationSeconds, DateTimeOffset.UtcNow);
         Check(new BossTimers(path).RememberedSeconds(700000, client.Id) == 3600, "Starting an accepted suggestion persists its duration");
+        var beforeBatch = File.ReadAllText(path);
+        var bulk = new BossTimerDialog("Mushmom", [client], store, 700000);
+        Check(Show(bulk, d => {
+            Box(d, "Channel").Text = "1–10";
+            var summary = ((TextBlock)d.FindName("ChannelSummary")).Text;
+            Check(summary.Contains("10 timers") && summary.Contains("1 existing"), "Batch preview shows count and existing timers that will restart");
+            Check(Equals(((Button)d.FindName("SaveTimerButton")).Content, "Start 10 timers"), "Primary action describes the batch size");
+            Box(d, "Channel").Text = "1,0,3"; Start(d);
+            Check(d.IsVisible && File.ReadAllText(path) == beforeBatch, "Invalid batch stays open without saving a partial selection");
+            Box(d, "Channel").Text = "1–10, 3"; Start(d);
+        }) == true && bulk.Channels.Count == 10, "Dialog returns the unique batch selection");
+        store.StartMany(700000, "Mushmom", client.Id, client.Name, bulk.Channels, bulk.DurationSeconds, DateTimeOffset.UtcNow);
+        Check(new BossTimers(path).Timers.Count == 11, "Batch save creates every channel and preserves the other boss");
+        var edit = new BossTimerDialog("Mushmom", [client], store, 700000, store.Timers.First(t => t.BossId == 700000));
+        Show(edit, d => { Box(d, "Channel").Text = "1-3"; Start(d); Check(d.IsVisible, "Editing one timer still requires a single channel"); d.DialogResult = false; });
     }
 }

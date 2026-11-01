@@ -34,7 +34,7 @@ public partial class MainWindow {
         var add = new Button { Content = "Add timer", HorizontalAlignment = HorizontalAlignment.Left, IsEnabled = maps.Count > 0, Margin = new Thickness(0, 0, 0, 10), ToolTip = maps.Count > 0 ? "Start a manual respawn countdown for a map and channel" : "No linked map is available in the client data" };
         add.Click += (_, _) => {
             var dialog = new BossTimerDialog(boss.Name, maps, bossTimers, boss.Id) { Owner = this };
-            if (dialog.ShowDialog() == true) TimerChange(() => bossTimers.Start(boss.Id, boss.Name, dialog.Map.Id, dialog.Map.Name, dialog.Channel, dialog.DurationSeconds, DateTimeOffset.UtcNow));
+            if (dialog.ShowDialog() == true) TimerChange(() => bossTimers.StartMany(boss.Id, boss.Name, dialog.Map.Id, dialog.Map.Name, dialog.Channels, dialog.DurationSeconds, DateTimeOffset.UtcNow));
         };
         Details.Children.Add(add);
     }
@@ -55,10 +55,10 @@ public partial class MainWindow {
             var actions = new StackPanel { Orientation = Orientation.Horizontal }; panel.Children.Add(actions);
             void Button(string label, Action action) { var button = new Button { Content = label }; button.Click += (_, _) => action(); actions.Children.Add(button); }
             Button("Killed now", () => TimerChange(() => bossTimers.Start(timer.BossId, timer.BossName, timer.MapId, timer.MapName, timer.Channel, timer.DurationSeconds, DateTimeOffset.UtcNow)));
-            Button("Add channel", () => {
+            Button("Add channels", () => {
                 var map = snapshot?.Catalog.Find(new(EntityKind.Map, timer.MapId)) ?? new Entity { Kind = EntityKind.Map, Id = timer.MapId, Name = timer.MapName };
                 var dialog = new BossTimerDialog(timer.BossName, [map], bossTimers, timer.BossId, initialChannel: bossTimers.NextChannel(timer.BossId, timer.MapId)) { Owner = this };
-                if (dialog.ShowDialog() == true) TimerChange(() => bossTimers.Start(timer.BossId, timer.BossName, timer.MapId, timer.MapName, dialog.Channel, dialog.DurationSeconds, DateTimeOffset.UtcNow));
+                if (dialog.ShowDialog() == true) TimerChange(() => bossTimers.StartMany(timer.BossId, timer.BossName, timer.MapId, timer.MapName, dialog.Channels, dialog.DurationSeconds, DateTimeOffset.UtcNow));
             });
             Button("Edit", () => {
                 var map = new Entity { Kind = EntityKind.Map, Id = timer.MapId, Name = timer.MapName };

@@ -26,7 +26,7 @@ internal static class BossTimerUi {
         object? Invoke(string method, params object[] args) => typeof(MainWindow).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, args);
         void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         BossTimerDialog? dialog = null;
-        void FillDialog(int channel, int seconds, bool checkBlank = false, int? expectedChannel = null, bool cancel = false) {
+        void FillDialog(int channel, int seconds, bool checkBlank = false, int? expectedChannel = null, bool cancel = false, string? selection = null) {
             var pump = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             pump.Tick += (_, _) => {
                 dialog = window.OwnedWindows.OfType<BossTimerDialog>().FirstOrDefault();
@@ -48,7 +48,7 @@ internal static class BossTimerUi {
                         }
                     } catch (Exception ex) { failed = true; Console.WriteLine("FAIL " + ex); dialog.Close(); return; }
                 }
-                ((TextBox)dialog.FindName("ChannelBox")).Text = channel.ToString();
+                ((TextBox)dialog.FindName("ChannelBox")).Text = selection ?? channel.ToString();
                 ((TextBox)dialog.FindName("HoursBox")).Text = "0";
                 ((TextBox)dialog.FindName("MinutesBox")).Text = "0";
                 ((TextBox)dialog.FindName("SecondsBox")).Text = seconds.ToString();
@@ -68,8 +68,12 @@ internal static class BossTimerUi {
                 Invoke("ShowEntity", boss);
                 var details = (StackPanel)window.FindName("Details");
                 var add = details.Children.OfType<Button>().Single(b => Equals(b.Content, "Add timer"));
-                FillDialog(1, 30, checkBlank: true); Click(add);
+                var rows = (StackPanel)window.FindName("TimerRows");
+                Button Action(string label, int? channel = null) => rows.Children.OfType<Border>().Select(b => (StackPanel)b.Child).Where(p => channel == null || p.Children.OfType<TextBlock>().First().Text.EndsWith($"Channel {channel}")).SelectMany(p => p.Children.OfType<StackPanel>()).SelectMany(p => p.Children.OfType<Button>()).First(b => Equals(b.Content, label));
+                FillDialog(1, 30, checkBlank: true, selection: "1–3"); Click(add);
                 var path = Path.Combine(root, "boss-timers.json");
+                Check(new BossTimers(path).Timers.Count == 3, "Boss-details action starts a range of channels in one submission");
+                Click(Action("Remove", 3)); Click(Action("Remove", 2));
                 Check(new BossTimers(path).Timers.Count == 1, "Add timer from boss details saves an isolated countdown");
                 Check(((FrameworkElement)window.FindName("TimerView")).Visibility == Visibility.Visible, "Adding a timer opens timer view");
                 Click((Button)window.FindName("TimersButton"));
@@ -86,23 +90,25 @@ internal static class BossTimerUi {
                 ((RoutedCommand)focusSearch.Command).Execute(null, window);
                 Check(search.IsKeyboardFocusWithin && search.SelectedText == "Test Boss", "Ctrl+L returns from timers to the retained search");
                 Click((Button)window.FindName("TimersButton"));
-                var rows = (StackPanel)window.FindName("TimerRows");
-                Button Action(string label, int? channel = null) => rows.Children.OfType<Border>().Select(b => (StackPanel)b.Child).Where(p => channel == null || p.Children.OfType<TextBlock>().First().Text.EndsWith($"Channel {channel}")).SelectMany(p => p.Children.OfType<StackPanel>()).SelectMany(p => p.Children.OfType<Button>()).First(b => Equals(b.Content, label));
                 var oldDue = new BossTimers(path).Timers.Single().DueAt;
                 Click(Action("Killed now"));
                 Check(new BossTimers(path).Timers.Single().DueAt >= oldDue, "Killed now restarts the countdown");
                 var original = new BossTimers(path).Timers.Single();
-                FillDialog(2, 30, expectedChannel: 2, cancel: true); Click(Action("Add channel"));
+                FillDialog(2, 30, expectedChannel: 2, cancel: true); Click(Action("Add channels"));
                 Check(new BossTimers(path).Timers.Single() == original, "Cancelling Add channel leaves the existing countdown unchanged");
-                FillDialog(2, 30, expectedChannel: 2); Click(Action("Add channel"));
+                FillDialog(2, 30, expectedChannel: 2); Click(Action("Add channels"));
                 var added = new BossTimers(path);
                 Check(added.Timers.Count == 2 && added.Timers.Single(t => t.Id == original.Id) == original, "Add channel creates an independent timer without resetting the original");
                 var snapshotField = typeof(MainWindow).GetField("snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!;
                 var availableSnapshot = snapshotField.GetValue(window); snapshotField.SetValue(window, null);
-                FillDialog(3, 30, expectedChannel: 3); Click(Action("Add channel"));
+                FillDialog(3, 30, expectedChannel: 3); Click(Action("Add channels"));
                 snapshotField.SetValue(window, availableSnapshot);
                 Check(new BossTimers(path).Timers.Count == 3, "More channels can be added directly from the timer list");
                 Click(Action("Remove", 3)); Click(Action("Remove", 2));
+                FillDialog(1, 30, selection: "1–10"); Click(Action("Add channels"));
+                var bulkTimers = new BossTimers(path).Timers;
+                Check(bulkTimers.Count == 10 && bulkTimers.Select(t => t.DueAt).Distinct().Count() == 1, "Timer-list action starts a full range with one common deadline");
+                for (var ch = 2; ch <= 10; ch++) Click(Action("Remove", ch));
                 Directory.CreateDirectory("artifacts"); window.UpdateLayout();
                 var render = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32); render.Render(window);
                 var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(render));

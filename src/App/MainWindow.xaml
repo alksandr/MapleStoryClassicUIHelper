@@ -40,7 +40,7 @@
       <Grid x:Name="TimerView" Grid.Row="1" Grid.RowSpan="3" Margin="16,12" Visibility="Collapsed">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <TextBlock Text="Boss respawn timers" FontSize="23" FontWeight="Bold"/>
-        <TextBlock Grid.Row="1" Text="Manual estimates, not live spawn tracking. Search a boss and choose Add timer to track a map and channel." TextWrapping="Wrap" Margin="0,8,0,14"/>
+        <TextBlock Grid.Row="1" Text="Manual estimates, not live spawn tracking. Use Add channels to track more channels, or search a new boss and choose Add timer." TextWrapping="Wrap" Margin="0,8,0,14"/>
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="TimerRows"/></ScrollViewer>
       </Grid>
       <Grid Grid.Row="4" Margin="13,10,13,10"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>

@@ -47,6 +47,22 @@ public sealed class BossTimers {
         return timer;
     }
     public void Remove(Guid id) => Commit(new() { Timers = state.Timers.Where(t => t.Id != id).ToList(), Durations = state.Durations });
+    // O(N + D + B) for N stored timers, D remembered durations and B channels, including full overlap.
+    // One shared deadline and one atomic write; failures leave the whole batch unapplied.
+    public IReadOnlyList<BossTimer> StartMany(int bossId, string bossName, int mapId, string mapName, IReadOnlyCollection<int> channels, int seconds, DateTimeOffset now) {
+        ArgumentNullException.ThrowIfNull(channels);
+        if (channels.Count == 0 || channels.Count > BossTimerChannels.MaxBatchSize || channels.Any(c => c <= 0)) throw new ArgumentException("Choose a valid channel selection. " + BossTimerChannels.LimitMessage, nameof(channels));
+        if (seconds <= 0) throw new ArgumentOutOfRangeException(nameof(seconds));
+        var selected = channels.ToHashSet();
+        var dueAt = now.ToUniversalTime().AddSeconds(seconds);
+        var existing = state.Timers.Where(t => t.BossId == bossId && t.MapId == mapId).ToDictionary(t => t.Channel);
+        var started = selected.Select(c => new BossTimer(existing.GetValueOrDefault(c)?.Id ?? Guid.NewGuid(), bossId, bossName, mapId, mapName, c, seconds, dueAt)).ToArray();
+        Commit(new() {
+            Timers = state.Timers.Where(t => t.BossId != bossId || t.MapId != mapId || !selected.Contains(t.Channel)).Concat(started).ToList(),
+            Durations = state.Durations.Where(d => d.BossId != bossId || d.MapId != mapId).Append(new(bossId, mapId, seconds)).ToList()
+        });
+        return started;
+    }
     // O(N) in both sparse and dense expiry cases; allocate only when a deadline is newly due.
     public IReadOnlyList<BossTimer> TakeDue(DateTimeOffset now) {
         List<BossTimer>? due = null;
