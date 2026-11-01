@@ -24,7 +24,11 @@ The guide follows the game while opened with its shortcut. It hides when the gam
 
 ## Boss respawn timers
 
-Search a monster marked as a boss and choose **Add timer**. Select a linked map, enter a positive channel number and a respawn duration in hours/minutes/seconds, then start the timer. New durations are blank; the guide remembers your last duration for each boss/map. Starting the same boss/map/channel again restarts its existing countdown.
+Search a monster marked as a boss and choose **Add timer**. Select a linked map and enter a positive channel number. Empty duration fields are filled from your saved boss/map duration, then agreeing positive client spawn timings, then a bundled community estimate. Adjust the hours/minutes/seconds if needed and choose **Start timer**. Starting the same boss/map/channel again restarts its existing countdown.
+
+Suggestions show their source. Bundled [NiaMeowDB field-boss estimates](https://meowdb.com/msclassic/bosses), verified on 2026-10-31, use 60 minutes for Mano, Stumpy, Mushmom, Shade, Zombie Mushmom and Rotten Mushmom, and 180 minutes for Jr. Balrog, matched to their specific maps. Community ranges use the earliest time (60 minutes for a reported 60–120-minute range); the boss may appear later. Suggestions work offline and do not add missing bosses/maps to the client catalog. Unknown timings remain blank.
+
+The guide fills only a completely empty duration and never mixes suggestions with partial entries. Map changes preserve each map's duration draft within the dialog. **Start timer** saves the duration you actually choose for future use; opening, changing maps, or cancelling saves nothing. Editing an existing timer keeps that timer's duration first.
 
 Open **Boss timers** from the title bar or tray menu. Each timer shows its channel, map, countdown and local due time. **Killed now** restarts it; **Edit** changes its channel/duration and restarts it; **Remove** deletes it. Editing into an existing channel merges the timers. Switching back to **Field guide** preserves your lookup; **Ctrl+L** also returns to search.
 

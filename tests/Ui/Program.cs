@@ -14,6 +14,8 @@ using MapleHelper.Core;
 internal static class UiVerify {
     [STAThread] public static int Main(string[] args) {
         if (args.Contains("--boss-timers")) return BossTimerUi.Run();
+        var isolated = args.Contains("--isolated");
+        if (isolated && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("MAPLE_HELPER_DATA_ROOT"))) throw new ArgumentException("--isolated requires a separate MAPLE_HELPER_DATA_ROOT.");
         var missingGame = args.Contains("--missing-game");
         var placement = args.Contains("--placement");
         var settingsPath = Path.Combine(App.DataRoot, "settings.json");
@@ -22,7 +24,7 @@ internal static class UiVerify {
         var priorCommunityTime = File.GetLastWriteTimeUtc(communityPath);
         if (missingGame) AtomicJson.Write(settingsPath, new Settings { GameRoot = Path.Combine(Path.GetTempPath(), "missing-maple-" + Guid.NewGuid().ToString("N")) });
         if (placement) { var configured = AtomicJson.Read<Settings>(settingsPath) ?? new(); configured.OffsetX = 36; configured.OffsetY = 54; AtomicJson.Write(settingsPath, configured); }
-        var app = new App(); app.InitializeComponent();
+        var app = new App(hosted: isolated); app.InitializeComponent();
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         var started = DateTime.UtcNow;
         var running = false;
@@ -128,7 +130,7 @@ internal static class UiVerify {
             } catch (Exception ex) { failed = true; Console.WriteLine("FAIL " + ex); }
             window.Quit();
         };
-        try { timer.Start(); app.Run(); return failed || !completed ? 1 : 0; }
+        try { timer.Start(); if (isolated) { app.MainWindow = new MainWindow(); app.MainWindow.Show(); } app.Run(); return failed || !completed ? 1 : 0; }
         finally { if (missingGame || placement) { if (settingsBytes == null) File.Delete(settingsPath); else File.WriteAllBytes(settingsPath, settingsBytes); } }
     }
     private static IEnumerable<string> Texts(DependencyObject root) {
