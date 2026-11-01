@@ -16,7 +16,7 @@ public sealed class BossTimerDialog : Window {
     public Entity Map => (Entity)((ComboBoxItem)maps.SelectedItem).Tag;
     public int Channel { get; private set; }
     public int DurationSeconds { get; private set; }
-    public BossTimerDialog(string bossName, List<Entity> locations, BossTimers store, int bossId, BossTimer? editing = null) {
+    public BossTimerDialog(string bossName, List<Entity> locations, BossTimers store, int bossId, BossTimer? editing = null, int? initialChannel = null) {
         NameScope.SetNameScope(this, new NameScope());
         Title = editing == null ? "Add boss timer" : "Edit boss timer";
         Width = 480; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize; WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -27,7 +27,7 @@ public sealed class BossTimerDialog : Window {
         maps = new ComboBox { ItemsSource = locations.Select(m => new ComboBoxItem { Content = $"{m.Name} · #{m.Id}", Tag = m }).ToList(), SelectedIndex = 0, IsEnabled = editing == null };
         RegisterName("MapChoice", maps);
         panel.Children.Add(new Label { Content = "Map", Target = maps }); panel.Children.Add(maps);
-        channel = Input(panel, "Channel", "ChannelBox", (editing?.Channel ?? 1).ToString(CultureInfo.InvariantCulture));
+        channel = Input(panel, "Channel", "ChannelBox", (editing?.Channel ?? initialChannel ?? 1).ToString(CultureInfo.InvariantCulture));
         var durationRow = new StackPanel { Orientation = Orientation.Horizontal }; panel.Children.Add(durationRow);
         TextBox Duration(string label, string name) { var column = new StackPanel { Width = 125 }; durationRow.Children.Add(column); return Input(column, label, name, ""); }
         hours = Duration("Hours", "HoursBox"); minutes = Duration("Minutes", "MinutesBox"); seconds = Duration("Seconds", "SecondsBox");
@@ -79,7 +79,7 @@ public sealed class BossTimerDialog : Window {
             }
             Channel = ch; DurationSeconds = (int)((long)h * 3600 + m * 60 + s); DialogResult = true;
         };
-        Loaded += (_, _) => { hours.Focus(); hours.SelectAll(); };
+        Loaded += (_, _) => { var firstInput = initialChannel.HasValue ? channel : hours; firstInput.Focus(); firstInput.SelectAll(); };
     }
     private TextBox Input(StackPanel panel, string label, string name, string text) {
         var box = new TextBox { Text = text, Margin = new Thickness(0, 0, 8, 5) }; RegisterName(name, box); AutomationProperties.SetName(box, label);

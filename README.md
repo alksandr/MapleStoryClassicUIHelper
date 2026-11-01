@@ -32,6 +32,8 @@ The guide fills only a completely empty duration and never mixes suggestions wit
 
 Open **Boss timers** from the title bar or tray menu. Each timer shows its channel, map, countdown and local due time. **Killed now** restarts it; **Edit** changes its channel/duration and restarts it; **Remove** deletes it. Editing into an existing channel merges the timers. Switching back to **Field guide** preserves your lookup; **Ctrl+L** also returns to search.
 
+Use **Add channel** on any timer to track the same boss/map on another channel without returning to boss details. The dialog suggests the first unused positive channel, keeps your saved duration, and focuses the channel field. Press **Enter** to start it, or adjust the values first. Existing countdowns are unchanged unless you explicitly choose an already tracked channel, which restarts that channel's timer. You can repeat **Add channel** directly from the timer list, including when client data is unavailable.
+
 Timers are manual estimates, not live spawn detection or confirmed server respawn times. Expired timers stay marked **Respawn due · estimated** until restarted or removed. Deadlines survive hiding, sleep and app restarts; no alerts can run while the helper is closed. On reopening, overdue timers generate one combined catch-up alert. Alerts do not open the guide or take focus. **Settings → Play a sound when a boss timer is due** controls sound. Windows notification settings may suppress tray alerts.
 
 Timers and remembered durations live in `%LOCALAPPDATA%\MapleStoryClassicUIHelper\boss-timers.json`, independently of the game-data cache. Timers exclude world; use them within your current world.

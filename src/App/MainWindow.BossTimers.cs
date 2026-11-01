@@ -55,6 +55,11 @@ public partial class MainWindow {
             var actions = new StackPanel { Orientation = Orientation.Horizontal }; panel.Children.Add(actions);
             void Button(string label, Action action) { var button = new Button { Content = label }; button.Click += (_, _) => action(); actions.Children.Add(button); }
             Button("Killed now", () => TimerChange(() => bossTimers.Start(timer.BossId, timer.BossName, timer.MapId, timer.MapName, timer.Channel, timer.DurationSeconds, DateTimeOffset.UtcNow)));
+            Button("Add channel", () => {
+                var map = snapshot?.Catalog.Find(new(EntityKind.Map, timer.MapId)) ?? new Entity { Kind = EntityKind.Map, Id = timer.MapId, Name = timer.MapName };
+                var dialog = new BossTimerDialog(timer.BossName, [map], bossTimers, timer.BossId, initialChannel: bossTimers.NextChannel(timer.BossId, timer.MapId)) { Owner = this };
+                if (dialog.ShowDialog() == true) TimerChange(() => bossTimers.Start(timer.BossId, timer.BossName, timer.MapId, timer.MapName, dialog.Channel, dialog.DurationSeconds, DateTimeOffset.UtcNow));
+            });
             Button("Edit", () => {
                 var map = new Entity { Kind = EntityKind.Map, Id = timer.MapId, Name = timer.MapName };
                 var dialog = new BossTimerDialog(timer.BossName, [map], bossTimers, timer.BossId, timer) { Owner = this };
